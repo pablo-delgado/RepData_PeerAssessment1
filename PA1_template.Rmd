@@ -7,19 +7,76 @@ output:
 
 
 ## Loading and preprocessing the data
+```{r}
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+
+# If the activity file does not exists, unzip the archive
+if(!file.exists("activity.csv")) {
+    unzip("activity.zip")
+}
+
+# By this point the file shoud be present and ready to load, 
+data <- read.csv("activity.csv", header = TRUE)
+
+# Remove all the NA
+data <- data[!is.na(data$steps), ]
+
+# Next convert the class types for dates and intervals
+data$date <- as.Date(data$date)
+```
 
 
 
 ## What is mean total number of steps taken per day?
+```{r}
+aggregate_data <- aggregate(steps ~ date, data = data, mean, na.rm = TRUE)
+
+g <- qplot(steps, data = aggregate_data, geom = "histogram", binwidth = 5) + ggtitle("Mean Total Steps per Day")
+print(g)
+
+mean(aggregate_data$steps)
+
+median(aggregate_data$steps)
+```
+
 
 
 
 ## What is the average daily activity pattern?
-
+```{r}
+interval_data <- aggregate(steps ~ interval, data = data, mean, na.rm = TRUE)
+g <- qplot(interval, steps, data = interval_data, geom = "line")
+print(g)
+```
+### 5-Minute Interval with highest average
+```{r}
+interval_data[ which.max(interval_data$steps), "interval"]
+```
 
 
 ## Imputing missing values
-
+```{r}
+length(data[ is.na(data$steps), ]$steps)
+```
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+```{r}
+is_weekend <- function(dt) {
+    if(weekdays(as.Date("2005-01-01")) == "Saturday") x = "a"
+    paste(weekdays(dt), x)
+}
+
+data <- tbl_df(data) %>% mutate(dayofweek = (weekdays(date) == "Sunday" | weekdays(date) == "Saturday"))
+
+data <- aggregate(steps ~ interval + dayofweek, data = data, mean, na.rm = TRUE)
+head(data[data$dayofweek == "weekend", ])
+head(data[data$dayofweek == "weekday", ])
+g <- ggplot(data, aes(interval, steps)) + geom_line() + facet_grid(dayofweek ~ .)
+print(g)
+
+```
+
+
